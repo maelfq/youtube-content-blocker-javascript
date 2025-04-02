@@ -1,0 +1,21 @@
+{
+    "name": "YouTube Content Blocker",
+    "description": "Base Level Extension",
+    "version": "1.0",
+    "manifest_version": 3,
+    "action": {
+      "default_popup": "homepage.html",
+      "default_icon": "block.png"
+    },
+    "content_scripts": [
+    {
+      "js": ["scripts/content.js"],
+      "matches": [
+        "https://www.youtube.com/*"
+      ]
+    }
+  ],
+  "permissions": [
+    "storage"
+  ]
+}
