@@ -3,10 +3,29 @@ console.log('content.js');
 const SHORTS_KEY = 'youtube_content_blocker_configuration_disable_shorts';
 const SUGGESTED_VIDEOS_KEY = 'youtube_content_blocker_configuration_disable_suggested_videos';
 
+function waitForElementToExist(selector) {
+    return new Promise(resolve => {
 
-// FIXME: react to DOM change instead of setting a timeout and call when URL changes too
-setTimeout(async () => {
+        if (document.querySelector(selector)) {
+            return resolve(document.querySelector(selector));
+        }
 
+        const observer = new MutationObserver(mutations => {
+            if (document.querySelector(selector)) {
+                observer.disconnect();
+                resolve(document.querySelector(selector));
+            }
+        });
+
+        // If you get "parameter 1 is not of type 'Node'" error, see https://stackoverflow.com/a/77855838/492336
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    });
+}
+
+async function removeContent() {
     let data = await chrome.storage.local.get([SHORTS_KEY, SUGGESTED_VIDEOS_KEY]);
 
     const disableShorts = data[SHORTS_KEY];
@@ -23,11 +42,37 @@ setTimeout(async () => {
     if(disableShorts == true) {
         disableShortsOnSubscriptionPage();
     }
-}, 3000)
+}
+
+async function waitForPageInit() {
+    
+    const currentUrl = window.location.href.toLowerCase();
+    console.log('url', currentUrl);
+    if(currentUrl.includes('watch')) {
+        const secondaryVideos = await waitForElementToExist('#secondary');
+    }
+    else if(currentUrl.includes('subscriptions')) {
+        const shorts = await waitForElementToExist('ytd-rich-shelf-renderer');
+    }
+    removeContent();
+    return;
+}
+
+waitForPageInit();
+
+// FIXME: fix location change trigger
+/*
+const urlChangeEventListener = window.navigation.addEventListener("navigate", (event) => {
+    console.log('urlChangeEvent');
+    waitForPageInit();
+})
+*/
 
 function removeWatchNextElement() {
     const watchNextElement = document.getElementById('secondary');
-    watchNextElement.style.display = 'none';
+    if(watchNextElement) {
+        watchNextElement.style.display = 'none';
+    }
 }
 
 function setPlayer() {
@@ -53,11 +98,10 @@ function setPlayer() {
 
 function disableShortsOnSubscriptionPage() {
     console.log('disableShortsOnSubscriptionPage');
-    const shorts = document.querySelectorAll("ytd-rich-shelf-renderer");
+    const shorts = document.querySelectorAll('ytd-rich-shelf-renderer');
     shorts.forEach(shortBanner => {
         shortBanner.style['display'] = 'none';
-    })
-    
+    })  
 }
 
 
@@ -75,5 +119,4 @@ function fixDefaultPlayer() {
 
     const playerProgressBar = document.getElementsByClassName("ytp-chapter-hover-container")[0];
     playerProgressBar.style['width'] = player.offsetWidth + 'px';
-
 }
