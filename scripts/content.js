@@ -3,6 +3,8 @@ console.log('content.js');
 const SHORTS_KEY = 'youtube_content_blocker_configuration_disable_shorts';
 const SUGGESTED_VIDEOS_KEY = 'youtube_content_blocker_configuration_disable_suggested_videos';
 
+let currentUrl = window.location.href.toLowerCase();
+
 function waitForElementToExist(selector) {
     return new Promise(resolve => {
 
@@ -17,7 +19,6 @@ function waitForElementToExist(selector) {
             }
         });
 
-        // If you get "parameter 1 is not of type 'Node'" error, see https://stackoverflow.com/a/77855838/492336
         observer.observe(document.body, {
             childList: true,
             subtree: true
@@ -30,9 +31,6 @@ async function removeContent() {
 
     const disableShorts = data[SHORTS_KEY];
     const disableSuggestedVideos = data[SUGGESTED_VIDEOS_KEY];
-
-    console.log(disableShorts);
-    console.log(disableSuggestedVideos);
 
     if(disableSuggestedVideos == true) {
         removeWatchNextElement();
@@ -47,9 +45,8 @@ async function removeContent() {
 async function waitForPageInit() {
     
     const currentUrl = window.location.href.toLowerCase();
-    console.log('url', currentUrl);
     if(currentUrl.includes('watch')) {
-        const secondaryVideos = await waitForElementToExist('#secondary');
+        const secondaryVideos = await waitForElementToExist('ytd-watch-next-secondary-results-renderer');
     }
     else if(currentUrl.includes('subscriptions')) {
         const shorts = await waitForElementToExist('ytd-rich-shelf-renderer');
@@ -60,30 +57,23 @@ async function waitForPageInit() {
 
 waitForPageInit();
 
-// FIXME: fix location change trigger
-/*
-const urlChangeEventListener = window.navigation.addEventListener("navigate", (event) => {
-    console.log('urlChangeEvent');
-    waitForPageInit();
-})
-*/
+chrome.runtime.onMessage.addListener(function(request, sender) {
+    console.log("URL CHANGED: ", request.data.url);
+    if(request.data.url.toLowerCase() != currentUrl); {
+        currentUrl = request.data.url.toLowerCase();
+        waitForPageInit();
+    }
+});
 
 function removeWatchNextElement() {
-    const watchNextElement = document.getElementById('secondary');
+    const watchNextElement = document.querySelector('ytd-watch-next-secondary-results-renderer');
     if(watchNextElement) {
         watchNextElement.style.display = 'none';
     }
 }
 
 function setPlayer() {
-    console.log('setPlayer');
-    // get the rendered size from the player-container
-    const player = document.getElementById('player-container-outer');
-    if(player) {
-        player.style['background-color'] = 'antiquewhite';
-    }
-
-
+    // enable cinema display
     const cinemaModeButton = document.getElementsByClassName('ytp-size-button')[0];
     if(cinemaModeButton && cinemaModeButton.getAttribute('aria-label').toLowerCase().includes('cinema')) {
         cinemaModeButton.click();
@@ -97,26 +87,8 @@ function setPlayer() {
 }
 
 function disableShortsOnSubscriptionPage() {
-    console.log('disableShortsOnSubscriptionPage');
     const shorts = document.querySelectorAll('ytd-rich-shelf-renderer');
     shorts.forEach(shortBanner => {
         shortBanner.style['display'] = 'none';
     })  
-}
-
-
-/**
- * @deprecated
- * @unused
- */
-function fixDefaultPlayer() {
-    const youtubeVideo = document.getElementsByClassName("html5-main-video")[0];
-    youtubeVideo.style['width'] = player.offsetWidth + 'px';
-    youtubeVideo.style['height'] = player.offsetHeight + 'px';
-
-    const playerButtons = document.getElementsByClassName("ytp-chrome-bottom")[0];
-    playerButtons.style['width'] = player.offsetWidth + 'px';
-
-    const playerProgressBar = document.getElementsByClassName("ytp-chapter-hover-container")[0];
-    playerProgressBar.style['width'] = player.offsetWidth + 'px';
 }

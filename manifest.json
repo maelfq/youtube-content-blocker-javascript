@@ -7,6 +7,9 @@
       "default_popup": "homepage.html",
       "default_icon": "block.png"
     },
+    "background": {
+      "service_worker": "scripts/service-worker.js"
+    },
     "content_scripts": [
     {
       "js": ["scripts/content.js"],
@@ -16,6 +19,7 @@
     }
   ],
   "permissions": [
-    "storage"
+    "storage",
+    "tabs"
   ]
 }
